@@ -90,11 +90,11 @@ void loop() {
     else if (req.indexOf("/gpio/1") != -1) {
         val = 1;
     }
-    else {
+    /*else {
         Serial.println("invalid request");
         client.stop();
         return;
-    }
+    }*/
     
     // Set GPIO2 according to the request
     setLED(val);
