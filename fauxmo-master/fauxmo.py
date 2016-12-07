@@ -384,7 +384,7 @@ class rest_api_handler(object):
 # list will be used.
 
 FAUXMOS = [
-    ['ktichen lights', rest_api_handler('http://192.168.0.111/gpio/1', 'http://192.168.0.111/gpio/0')],
+    ['liams house lights', rest_api_handler('http://192.168.0.111/gpio/1', 'http://192.168.0.111/gpio/0')],
 ]
 
 
