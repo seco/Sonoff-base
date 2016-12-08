@@ -29,6 +29,7 @@
 #define SONOFF_INPUT    14
 
 #define BUTTON          0
+#define RELAY           12
 #define LED_PIN         13
 #define LED_ON          LOW
 #define LED_OFF         HIGH
@@ -52,6 +53,11 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LED_ON);
 
+    pinMode(RELAY, OUTPUT);
+    digitalWrite(RELAY, 0);
+
+    pinMode(BUTTON, INPUT);
+    
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
@@ -90,14 +96,15 @@ void loop() {
     else if (req.indexOf("/gpio/1") != -1) {
         val = 1;
     }
-    /*else {
+    else {
         Serial.println("invalid request");
         client.stop();
         return;
-    }*/
+    }
     
-    // Set GPIO2 according to the request
+    // Set GPIO according to the request
     setLED(val);
+    setRelay(val);
     
     client.flush();
     
@@ -108,7 +115,7 @@ void loop() {
     
     // Send the response to the client
     client.print(s);
-    delay(1);
+    delay(100);
     Serial.println("Client disonnected");
     
     // The client will actually be disconnected 
@@ -122,6 +129,10 @@ void tick() {
 
 void setLED(int val) {
     digitalWrite(LED_PIN, !val);
+}
+
+void setRelay(int val) {
+    digitalWrite(RELAY, val);
 }
 
 void setupOTA(char* host) {
