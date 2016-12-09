@@ -20,6 +20,7 @@
 #include <ArduinoOTA.h>
 #include "appconfig.h"
 #include "wificonfig.h"
+#include <Pushbutton.h>
 
 /* ----------------------------------------------------------- */
 
@@ -38,6 +39,10 @@
 
 WiFiServer server(80);
 
+Pushbutton button(BUTTON);
+
+int val = 0;
+
 /* ----------------------------------------------------------- */
 
 void setup() {
@@ -51,12 +56,10 @@ void setup() {
     Serial.println("Server started on port 80");
 
     pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LED_ON);
+    digitalWrite(LED_PIN, LED_OFF);
 
     pinMode(RELAY, OUTPUT);
     digitalWrite(RELAY, 0);
-
-    pinMode(BUTTON, INPUT);
     
     Serial.println("Ready");
     Serial.print("IP address: ");
@@ -71,11 +74,28 @@ void loop() {
     //tick();
     ArduinoOTA.handle();
 
-    WiFiClient client = server.available();
-    if (!client) {
-        return;
+    if (button.getSingleDebouncedRelease()) {
+        digitalWrite(LED_PIN, HIGH);
+        delay(200);
+        digitalWrite(LED_PIN, LOW);
+        val = !val;
+        setRelay(val);
     }
     
+    WiFiClient client = server.available();
+    if (client) {
+        int result = serviceClient(client);
+        if (result > -1) {
+            val = result;
+            setRelay(val);
+        }
+    }
+}
+
+int serviceClient(WiFiClient client) {
+
+    int cmd = -1;
+        
     // Wait until the client sends some data
     Serial.println("new client");
     while(!client.available()){
@@ -89,22 +109,21 @@ void loop() {
     client.flush();
     
     // Match the request
-    int val;
     if (req.indexOf("/gpio/0") != -1) {
-        val = 0;
+        cmd = 0;
     }
     else if (req.indexOf("/gpio/1") != -1) {
-        val = 1;
+        cmd = 1;
     }
     else {
         Serial.println("invalid request");
         client.stop();
-        return;
+        return -1;
     }
     
-    // Set GPIO according to the request
-    setLED(val);
-    setRelay(val);
+//    // Set GPIO according to the request
+//    //setLED(val);
+//    setRelay(val);
     
     client.flush();
     
@@ -120,7 +139,7 @@ void loop() {
     
     // The client will actually be disconnected 
     // when the function returns and 'client' object is detroyed
-
+    return cmd;
 }
 
 void tick() {
