@@ -47,7 +47,7 @@ int val = 0;
 
 void setup() {
 
-    Serial.begin(115200);
+    Serial.begin(9600);
     Serial.println("Booting");
 
     setupOTA("SonoffBase");
@@ -73,73 +73,7 @@ void loop() {
     delay(100);
     //tick();
     ArduinoOTA.handle();
-
-    if (button.getSingleDebouncedRelease()) {
-        digitalWrite(LED_PIN, HIGH);
-        delay(200);
-        digitalWrite(LED_PIN, LOW);
-        val = !val;
-        setRelay(val);
-    }
     
-    WiFiClient client = server.available();
-    if (client) {
-        int result = serviceClient(client);
-        if (result > -1) {
-            val = result;
-            setRelay(val);
-        }
-    }
-}
-
-int serviceClient(WiFiClient client) {
-
-    int cmd = -1;
-        
-    // Wait until the client sends some data
-    Serial.println("new client");
-    while(!client.available()){
-        delay(1);
-    }
-    
-    // Read the first line of the request
-    String req = client.readStringUntil('\r');
-    Serial.print("Req: ");
-    Serial.println(req);
-    client.flush();
-    
-    // Match the request
-    if (req.indexOf("/gpio/0") != -1) {
-        cmd = 0;
-    }
-    else if (req.indexOf("/gpio/1") != -1) {
-        cmd = 1;
-    }
-    else {
-        Serial.println("invalid request");
-        client.stop();
-        return -1;
-    }
-    
-//    // Set GPIO according to the request
-//    //setLED(val);
-//    setRelay(val);
-    
-    client.flush();
-    
-    // Prepare the response
-    String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>\r\nGPIO is now ";
-    s += (val)?"high":"low";
-    s += "</html>\n";
-    
-    // Send the response to the client
-    client.print(s);
-    delay(100);
-    Serial.println("Client disonnected");
-    
-    // The client will actually be disconnected 
-    // when the function returns and 'client' object is detroyed
-    return cmd;
 }
 
 void tick() {
