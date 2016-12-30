@@ -21,6 +21,9 @@
 #include "appconfig.h"
 #include "wificonfig.h"
 #include <Pushbutton.h>
+#include <EventManager.h>
+
+char versionText[] = "House Lights External Switch v1.0.0";
 
 /* ----------------------------------------------------------- */
 
@@ -30,25 +33,61 @@
 #define SONOFF_INPUT    14
 
 #define BUTTON          0
+#define EXT_BUTTON      14
 #define RELAY           12
 #define LED_PIN         13
 #define LED_ON          LOW
 #define LED_OFF         HIGH
 
+EventManager sEM;
+
+#define CH_EXT_SWITCH   0
+#define CH_BUTTON       1
+#define CH_RELAY        2
+
+struct Channel {
+    int index;
+    int state;
+    int eventCode;
+};
+
+Channel ch[10] {
+    {
+        CH_EXT_SWITCH,
+        1,
+        EventManager::kEventUser0
+    },
+    {
+        CH_BUTTON,
+        1,
+        EventManager::kEventUser1
+    },
+    {
+        CH_RELAY,
+        1,
+        0
+    }
+};
+
+
 /* ----------------------------------------------------------- */
 
 WiFiServer server(80);
 
-Pushbutton button(BUTTON);
+Pushbutton button(SONOFF_BUTTON);
+Pushbutton extSwitch(EXT_BUTTON);
 
 int val = 0;
+int extSwVal = 1;
 
 /* ----------------------------------------------------------- */
 
 void setup() {
 
     Serial.begin(9600);
+    delay(100);
     Serial.println("Booting");
+    Serial.println(versionText);
 
     setupOTA("SonoffBase");
 
@@ -64,6 +103,9 @@ void setup() {
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
+    sEM.addListener(ch[CH_EXT_SWITCH].eventCode, listener_ExtSwitch);
+    sEM.addListener(ch[CH_BUTTON].eventCode, listener_Button);
 }
 
 /* ----------------------------------------------------------- */
@@ -71,13 +113,45 @@ void setup() {
 void loop() {
 
     delay(100);
-    //tick();
+    
     ArduinoOTA.handle();
     
+    serviceEvent(CH_EXT_SWITCH);
+    serviceEvent(CH_BUTTON);
+
+    sEM.processEvent();
 }
 
-void tick() {
-  digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+void serviceEvent(int st) {
+
+    switch (st) {
+        case CH_EXT_SWITCH: {
+            if (extSwitch.getSingleDebouncedRelease()) {
+                Serial.println("CH_EXT_SWITCH getSingleDebouncedRelease");
+                ch[CH_EXT_SWITCH].state = val;
+                sEM.queueEvent(ch[CH_EXT_SWITCH].eventCode, val);
+            }
+            }
+            break;  
+        case CH_BUTTON: {
+            if (button.getSingleDebouncedRelease()) {
+                Serial.println("CH_BUTTON getSingleDebouncedRelease");
+                ch[CH_BUTTON].state = val;
+                sEM.queueEvent(ch[CH_BUTTON].eventCode, val);
+            }
+            }
+            break;  
+    }
+}
+
+void listener_ExtSwitch(int event, int state) {
+    Serial.print("Ext Switch listener: "); Serial.println(state);
+    toggleRelay();
+}
+
+void listener_Button(int event, int state) {
+    Serial.print("Button listener: "); Serial.println(state);
+    toggleRelay();
 }
 
 void setLED(int val) {
@@ -86,6 +160,16 @@ void setLED(int val) {
 
 void setRelay(int val) {
     digitalWrite(RELAY, val);
+}
+
+void toggleRelay() {
+    if (ch[CH_RELAY].state == 1) {
+        ch[CH_RELAY].state = 0;
+    }
+    else {
+        ch[CH_RELAY].state = 1;
+    }
+    setRelay(ch[CH_RELAY].state);
 }
 
 void setupOTA(char* host) {
