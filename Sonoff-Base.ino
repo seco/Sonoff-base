@@ -23,7 +23,7 @@
 #include <Pushbutton.h>
 #include <EventManager.h>
 
-char versionText[] = "House Lights External Switch v1.0.0";
+char versionText[] = "House Lights External Switch v1.1.0";
 
 /* ----------------------------------------------------------- */
 
@@ -39,6 +39,7 @@ char versionText[] = "House Lights External Switch v1.0.0";
 #define LED_ON          LOW
 #define LED_OFF         HIGH
 
+// https://github.com/igormiktor/arduino-EventManager/blob/master/EventManager/EventManager.h
 EventManager sEM;
 
 #define CH_EXT_SWITCH   0
@@ -126,18 +127,18 @@ void serviceEvent(int st) {
 
     switch (st) {
         case CH_EXT_SWITCH: {
-            if (extSwitch.getSingleDebouncedRelease()) {
-                Serial.println("CH_EXT_SWITCH getSingleDebouncedRelease");
-                ch[CH_EXT_SWITCH].state = val;
-                sEM.queueEvent(ch[CH_EXT_SWITCH].eventCode, val);
+            int state = extSwitch.isPressed();
+            if (ch[CH_EXT_SWITCH].state != state) {
+                Serial.println("CH_EXT_SWITCH state changed");
+                sEM.queueEvent(ch[CH_EXT_SWITCH].eventCode, state);
             }
             }
             break;  
         case CH_BUTTON: {
-            if (button.getSingleDebouncedRelease()) {
-                Serial.println("CH_BUTTON getSingleDebouncedRelease");
-                ch[CH_BUTTON].state = val;
-                sEM.queueEvent(ch[CH_BUTTON].eventCode, val);
+            int state = button.isPressed();
+            if (ch[CH_BUTTON].state != state) {
+                Serial.println("CH_BUTTON state changed");
+                sEM.queueEvent(ch[CH_BUTTON].eventCode, state);
             }
             }
             break;  
@@ -146,12 +147,14 @@ void serviceEvent(int st) {
 
 void listener_ExtSwitch(int event, int state) {
     Serial.print("Ext Switch listener: "); Serial.println(state);
-    toggleRelay();
+    ch[CH_EXT_SWITCH].state = state;
+    setRelay(state);
 }
 
 void listener_Button(int event, int state) {
     Serial.print("Button listener: "); Serial.println(state);
-    toggleRelay();
+    ch[CH_BUTTON].state = state;
+    setRelay(state);
 }
 
 void setLED(int val) {
