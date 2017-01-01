@@ -1,4 +1,4 @@
-/*
+  /*
    1MB flash sizee
    sonoff header
    1 - vcc 3v3
@@ -75,6 +75,7 @@ Channel ch[10] {
 
 WiFiServer server(80);
 
+// https://github.com/pololu/pushbutton-arduino
 Pushbutton button(SONOFF_BUTTON);
 Pushbutton extSwitch(EXT_BUTTON);
 
@@ -135,12 +136,12 @@ void serviceEvent(int st) {
             }
             break;  
         case CH_BUTTON: {
-            int state = button.isPressed();
-            if (ch[CH_BUTTON].state != state) {
-                Serial.println("CH_BUTTON state changed");
-                sEM.queueEvent(ch[CH_BUTTON].eventCode, state);
+            if (button.getSingleDebouncedRelease()) {
+                Serial.println("CH_BUTTON getSingleDebouncedRelease");
+                ch[CH_BUTTON].state = val;
+                sEM.queueEvent(ch[CH_BUTTON].eventCode, val);
             }
-            }
+        }
             break;  
     }
 }
@@ -153,8 +154,7 @@ void listener_ExtSwitch(int event, int state) {
 
 void listener_Button(int event, int state) {
     Serial.print("Button listener: "); Serial.println(state);
-    ch[CH_BUTTON].state = state;
-    setRelay(state);
+    toggleRelay();
 }
 
 void setLED(int val) {
@@ -163,6 +163,7 @@ void setLED(int val) {
 
 void setRelay(int val) {
     digitalWrite(RELAY, val);
+    setLED(val);
 }
 
 void toggleRelay() {
